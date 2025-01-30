@@ -5,9 +5,8 @@ import plotly.figure_factory as ff
 import joblib
 import statsmodels.api as sm
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
 # Streamlit app configuration
 st.set_page_config(page_title="Diabetes Dashboard", layout="wide")
@@ -82,14 +81,8 @@ if uploaded_file is not None:
         # Train a linear regression model using statsmodels
         model = sm.OLS(y, X).fit()
 
-        # Get p-values and confidence intervals
-        p_values = model.pvalues
-        conf_int = model.conf_int()
-
-        # Display full model details
-        st.sidebar.success("Full Regression Model Trained Successfully!")
-
         # Display regression model summary
+        st.sidebar.success("Full Regression Model Trained Successfully!")
         st.subheader("Full Regression Model Summary")
         st.write(model.summary())
 
@@ -101,28 +94,6 @@ if uploaded_file is not None:
 
         st.write(f"**R-squared:** {model.rsquared:.2f}")
         st.write(f"**Mean Squared Error (MSE):** {mean_squared_error(y, model.predict(X)):.2f}")
-
-        # Display p-values and confidence intervals
-        st.write("**P-values for selected features:**")
-        for feature, p_val in zip(feature_selection, p_values[1:]):
-            st.write(f"{feature}: {p_val:.4f}")
-
-        # Display Confidence Intervals
-        st.write("**Confidence Intervals (95%) for selected features:**")
-        for feature, conf in zip(feature_selection, conf_int.values[1:]):
-            st.write(f"{feature}: ({conf[0]:.2f}, {conf[1]:.2f})")
-
-        # Visualizing regression results
-        st.subheader("Regression Predictions vs Actuals")
-        regression_result_df = pd.DataFrame({
-            "Actual": y,
-            "Predicted": model.predict(X)
-        })
-        st.write(regression_result_df.head())
-
-        # Plotting actual vs predicted values
-        fig = px.scatter(regression_result_df, x="Actual", y="Predicted", title="Actual vs Predicted Plasma Glucose Concentration")
-        st.plotly_chart(fig, use_container_width=True)
 
         # Optional: Plot residuals
         residuals = y - model.predict(X)
@@ -171,4 +142,3 @@ if uploaded_file is not None:
     # Download option
     st.sidebar.header("📥 Download Data")
     st.sidebar.download_button("Download Filtered Data", df_filtered.to_csv(index=False), "filtered_data.csv", "text/csv")
-
