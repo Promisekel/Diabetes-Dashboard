@@ -51,10 +51,17 @@ feature_selection = st.sidebar.multiselect(
     default=['Pregnancies', 'Glucose', 'BMI', 'Age']  # Default features
 )
 
+# Option to select dependent variable
+dependent_variable = st.sidebar.selectbox(
+    "Select Dependent Variable",
+    options=df.columns[:-1],  # Exclude the Outcome column from selection
+    index=df.columns.get_loc('Glucose')  # Default to 'Glucose'
+)
+
 if st.sidebar.button("Train Full Regression Model"):
     # Features and target selection
     X = df[feature_selection]  # Use the selected features
-    y = df['Glucose']  # Plasma Glucose concentration is the dependent variable
+    y = df[dependent_variable]  # Use the selected dependent variable
     
     # Add constant for intercept
     X = sm.add_constant(X)
@@ -87,9 +94,9 @@ if st.sidebar.button("Train Full Regression Model"):
     for feature, p_val in zip(feature_selection, p_values[1:]):
         st.write(f"{feature}: {p_val:.4f}")
     
-    # Assuming conf_int is the DataFrame with the confidence intervals for the regression model
+    # Display Confidence Intervals
     st.write("**Confidence Intervals (95%) for selected features:**")
-    for feature, conf in zip(feature_selection, conf_int[feature].values):
+    for feature, conf in zip(feature_selection, conf_int.values[1:]):
         st.write(f"{feature}: ({conf[0]:.2f}, {conf[1]:.2f})")
 
     # Visualizing regression results
@@ -101,7 +108,7 @@ if st.sidebar.button("Train Full Regression Model"):
     st.write(regression_result_df.head())
 
     # Plotting actual vs predicted values
-    fig = px.scatter(regression_result_df, x="Actual", y="Predicted", title="Actual vs Predicted Plasma Glucose Concentration")
+    fig = px.scatter(regression_result_df, x="Actual", y="Predicted", title=f"Actual vs Predicted {dependent_variable}")
     st.plotly_chart(fig, use_container_width=True)
 
     # Optional: Plot residuals
