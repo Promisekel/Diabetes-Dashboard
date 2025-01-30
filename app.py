@@ -3,9 +3,10 @@ import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
 import joblib
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
 import statsmodels.api as sm
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
 # Load dataset
 df = pd.read_csv("diabetesData.csv")
@@ -24,7 +25,7 @@ age_filter = st.sidebar.slider("Select Age Range", min_age, max_age, (min_age, m
 df_filtered = df[(df['Age'] >= age_filter[0]) & (df['Age'] <= age_filter[1])]
 
 # Create card layout
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3 = st.columns(3)
 
 with col1:
     if st.button("📈 Data Summary"):
@@ -42,33 +43,71 @@ with col3:
         fig = ff.create_annotated_heatmap(z=corr.values, x=list(corr.columns), y=list(corr.index), colorscale='Blues')
         st.plotly_chart(fig, use_container_width=True)
 
-with col4:
-    if st.button("📐 Regression Model"):
-        # Prepare data for regression
-        X = df_filtered.drop(columns=["Outcome"])
-        X = sm.add_constant(X)  # Adds an intercept to the model
-        y = df_filtered["Outcome"]
+# Regression Section - New Card with Full Model Output
+st.sidebar.header("📊 Regression Model")
+feature_selection = st.sidebar.multiselect(
+    "Select Features for Regression Model",
+    options=df.columns[:-1],  # Exclude the Outcome column
+    default=['Pregnancies', 'Glucose', 'BMI', 'Age']  # Default features
+)
 
-        # Fit Logistic Regression model using Statsmodels
-        model = sm.Logit(y, X)
-        result = model.fit()
+if st.sidebar.button("Train Full Regression Model"):
+    # Features and target selection
+    X = df[feature_selection]  # Use the selected features
+    y = df['Glucose']  # Plasma Glucose concentration is the dependent variable
+    
+    # Add constant for intercept
+    X = sm.add_constant(X)
+    
+    # Train a linear regression model using statsmodels
+    model = sm.OLS(y, X).fit()
+    
+    # Get p-values and confidence intervals
+    p_values = model.pvalues
+    conf_int = model.conf_int()
+    
+    # Display full model details
+    st.sidebar.success("Full Regression Model Trained Successfully!")
+    
+    # Display regression model summary
+    st.subheader("Full Regression Model Summary")
+    st.write(model.summary())
 
-        # Display full regression model results
-        st.write("**Full Logistic Regression Model Results:**")
-        st.write(result.summary())
+    # Display coefficients and intercept
+    st.write(f"**Intercept:** {model.params[0]:.2f}")
+    st.write("**Coefficients for selected features:**")
+    for feature, coef in zip(feature_selection, model.params[1:]):
+        st.write(f"{feature}: {coef:.2f}")
+    
+    st.write(f"**R-squared:** {model.rsquared:.2f}")
+    st.write(f"**Mean Squared Error (MSE):** {mean_squared_error(y, model.predict(X)):.2f}")
 
-        # Extracting p-values and confidence intervals
-        st.write("**Confidence Intervals (95%) for selected features:**")
-        conf_int = result.conf_int(alpha=0.05)  # 95% confidence intervals
+    # Display p-values and confidence intervals
+    st.write("**P-values for selected features:**")
+    for feature, p_val in zip(feature_selection, p_values[1:]):
+        st.write(f"{feature}: {p_val:.4f}")
+    
+    # Assuming conf_int is the DataFrame with the confidence intervals for the regression model
+    st.write("**Confidence Intervals (95%) for selected features:**")
+    for feature, conf in zip(feature_selection, conf_int[feature].values):
+        st.write(f"{feature}: ({conf[0]:.2f}, {conf[1]:.2f})")
 
-        # Loop through the features and display confidence intervals
-        for feature, conf in zip(X.columns, conf_int.values):
-            st.write(f"{feature}: ({conf[0]:.2f}, {conf[1]:.2f})")
+    # Visualizing regression results
+    st.subheader("Regression Predictions vs Actuals")
+    regression_result_df = pd.DataFrame({
+        "Actual": y,
+        "Predicted": model.predict(X)
+    })
+    st.write(regression_result_df.head())
 
-        st.write("**P-values for selected features:**")
-        pvalues = result.pvalues
-        for feature, p_value in pvalues.items():
-            st.write(f"{feature}: {p_value:.4f}")
+    # Plotting actual vs predicted values
+    fig = px.scatter(regression_result_df, x="Actual", y="Predicted", title="Actual vs Predicted Plasma Glucose Concentration")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Optional: Plot residuals
+    residuals = y - model.predict(X)
+    fig_residuals = px.scatter(x=y, y=residuals, title="Residuals Plot")
+    st.plotly_chart(fig_residuals, use_container_width=True)
 
 # Additional visualizations
 st.sidebar.header("📌 More Insights")
@@ -91,7 +130,7 @@ elif option == "Pair Plot":
     fig = px.scatter_matrix(df_filtered, dimensions=['Glucose', 'BloodPressure', 'BMI', 'Age'], color='Outcome')
     st.plotly_chart(fig, use_container_width=True)
 
-# Machine Learning Model - Logistic Regression
+# Machine Learning Model - Logistic Regression (for Prediction)
 st.sidebar.header("🧠 Diabetes Prediction")
 if st.sidebar.button("Train Model"):
     X = df.drop(columns=["Outcome"])
