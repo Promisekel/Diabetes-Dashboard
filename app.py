@@ -6,6 +6,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import mean_squared_error
 import plotly.express as px
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # Title of the app
 st.title("Diabetes Prediction and Regression Dashboard")
@@ -43,6 +45,22 @@ if uploaded_file is not None:
             model.fit(X_train, y_train)
             joblib.dump(model, "diabetes_model.pkl")
             st.sidebar.success("Model trained successfully!")
+
+            # Make predictions on the test set
+            y_pred = model.predict(X_test)
+            st.write("Predictions on Test Data:")
+            st.write(pd.DataFrame({"True Values": y_test, "Predictions": y_pred}))
+
+            # Accuracy
+            accuracy = (y_pred == y_test).mean()
+            st.write(f"Model Accuracy: {accuracy * 100:.2f}%")
+
+            # Confusion Matrix Plot
+            cm = pd.crosstab(y_test, y_pred, rownames=["Actual"], colnames=["Predicted"])
+            fig, ax = plt.subplots()
+            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
+            st.pyplot(fig)
+
         else:
             st.sidebar.warning("The dataset doesn't have a column named 'Outcome' for prediction.")
 
@@ -90,6 +108,17 @@ if uploaded_file is not None:
                 residuals = y - model.predict(X)
                 fig_residuals = px.scatter(x=y, y=residuals, title="Residuals Plot")
                 st.plotly_chart(fig_residuals, use_container_width=True)
+                
+                # Correlation Heatmap
+                correlation_matrix = df[feature_selection].corr()
+                fig_corr, ax = plt.subplots(figsize=(8, 6))
+                sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", ax=ax)
+                st.pyplot(fig_corr)
+
+                # Pairplot for selected features
+                fig_pairplot = sns.pairplot(df[feature_selection])
+                st.pyplot(fig_pairplot)
+
     else:
         st.sidebar.warning("The dataset doesn't have enough numeric columns for regression.")
     
