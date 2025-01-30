@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
 import joblib
+import statsmodels.api as sm
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
@@ -42,7 +43,7 @@ with col3:
         fig = ff.create_annotated_heatmap(z=corr.values, x=list(corr.columns), y=list(corr.index), colorscale='Blues')
         st.plotly_chart(fig, use_container_width=True)
 
-# Regression Section - New Card
+# Regression Section - New Card with Full Model Output
 st.sidebar.header("📊 Regression Model")
 feature_selection = st.sidebar.multiselect(
     "Select Features for Regression Model",
@@ -50,45 +51,51 @@ feature_selection = st.sidebar.multiselect(
     default=['Pregnancies', 'Glucose', 'BMI', 'Age']  # Default features
 )
 
-if st.sidebar.button("Train Regression Model"):
+if st.sidebar.button("Train Full Regression Model"):
     # Features and target selection
     X = df[feature_selection]  # Use the selected features
     y = df['Glucose']  # Plasma Glucose concentration is the dependent variable
     
-    # Split the data into train and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Add constant for intercept
+    X = sm.add_constant(X)
     
-    # Train a linear regression model
-    model = LinearRegression()
-    model.fit(X_train, y_train)
+    # Train a linear regression model using statsmodels
+    model = sm.OLS(y, X).fit()
     
-    # Make predictions
-    y_pred = model.predict(X_test)
+    # Get p-values and confidence intervals
+    p_values = model.pvalues
+    conf_int = model.conf_int()
     
-    # Calculate key metrics
-    intercept = model.intercept_
-    coefficients = model.coef_
-    r2 = r2_score(y_test, y_pred)
-    mse = mean_squared_error(y_test, y_pred)
+    # Display full model details
+    st.sidebar.success("Full Regression Model Trained Successfully!")
+    
+    # Display regression model summary
+    st.subheader("Full Regression Model Summary")
+    st.write(model.summary())
 
-    # Display model details
-    st.sidebar.success("Regression Model Trained Successfully!")
-    
     # Display coefficients and intercept
-    st.subheader("Regression Model Details")
-    st.write(f"**Intercept:** {intercept:.2f}")
+    st.write(f"**Intercept:** {model.params[0]:.2f}")
     st.write("**Coefficients for selected features:**")
-    for feature, coef in zip(feature_selection, coefficients):
+    for feature, coef in zip(feature_selection, model.params[1:]):
         st.write(f"{feature}: {coef:.2f}")
     
-    st.write(f"**R-squared:** {r2:.2f}")
-    st.write(f"**Mean Squared Error (MSE):** {mse:.2f}")
+    st.write(f"**R-squared:** {model.rsquared:.2f}")
+    st.write(f"**Mean Squared Error (MSE):** {mean_squared_error(y, model.predict(X)):.2f}")
+
+    # Display p-values and confidence intervals
+    st.write("**P-values for selected features:**")
+    for feature, p_val in zip(feature_selection, p_values[1:]):
+        st.write(f"{feature}: {p_val:.4f}")
     
+    st.write("**Confidence Intervals (95%) for selected features:**")
+    for feature, conf in zip(feature_selection, conf_int[1:]):
+        st.write(f"{feature}: ({conf[0]:.2f}, {conf[1]:.2f})")
+
     # Visualizing regression results
     st.subheader("Regression Predictions vs Actuals")
     regression_result_df = pd.DataFrame({
-        "Actual": y_test,
-        "Predicted": y_pred
+        "Actual": y,
+        "Predicted": model.predict(X)
     })
     st.write(regression_result_df.head())
 
@@ -97,8 +104,8 @@ if st.sidebar.button("Train Regression Model"):
     st.plotly_chart(fig, use_container_width=True)
 
     # Optional: Plot residuals
-    residuals = y_test - y_pred
-    fig_residuals = px.scatter(x=y_test, y=residuals, title="Residuals Plot")
+    residuals = y - model.predict(X)
+    fig_residuals = px.scatter(x=y, y=residuals, title="Residuals Plot")
     st.plotly_chart(fig_residuals, use_container_width=True)
 
 # Additional visualizations
