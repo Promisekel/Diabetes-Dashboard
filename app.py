@@ -74,11 +74,12 @@ if st.sidebar.button("Train Full Regression Model"):
     st.write(model.summary())
 
     # Display coefficients and intercept
-    st.write(f"**Intercept:** {model.params[0]:.2f}")
-    st.write("**Coefficients for selected features:**")
-    for feature, coef in zip(feature_selection, model.params[1:]):
-        st.write(f"{feature}: {coef:.2f}")
-    
+    # Display Confidence Intervals (95%) for selected features
+    st.write("**Confidence Intervals (95%) for selected features:**")
+    for feature, conf in zip(feature_selection, conf_int.iloc[:, 0:2].values):
+         st.write(f"{feature}: ({conf[0]:.2f}, {conf[1]:.2f})")
+
+  
     st.write(f"**R-squared:** {model.rsquared:.2f}")
     st.write(f"**Mean Squared Error (MSE):** {mean_squared_error(y, model.predict(X)):.2f}")
 
