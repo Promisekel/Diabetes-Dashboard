@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
@@ -7,7 +8,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 
 # Load dataset
-df = pd.read_csv("diabetesData.csv")
+#df = pd.read_csv("diabetesData.csv")
+import os
+file_path = os.path.join(os.path.dirname(__file__), "diabetesData.csv")
+df = pd.read_csv(file_path)
 
 # Rename columns for consistency
 df.columns = ['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigree', 'Age', 'Outcome']
