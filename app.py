@@ -41,7 +41,7 @@ with col2:
 
 with col3:
     if st.button("📉 Correlation Heatmap"):
-        corr = df_filtered.corr()
+        corr = df_filtered.select_dtypes(include=['number']).corr()
         fig = ff.create_annotated_heatmap(z=corr.values, x=list(corr.columns), y=list(corr.index), colorscale='Blues')
         st.plotly_chart(fig, use_container_width=True)
 
