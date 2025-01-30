@@ -7,6 +7,7 @@ import statsmodels.api as sm
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.linear_model import LogisticRegression
 
 # Load dataset
 df = pd.read_csv("diabetesData.csv")
@@ -39,7 +40,9 @@ with col2:
 
 with col3:
     if st.button("📉 Correlation Heatmap"):
-        corr = df_filtered.corr()
+        # Ensure you're working with numeric columns
+        numeric_columns = df_filtered.select_dtypes(include=['number']).columns
+        corr = df_filtered[numeric_columns].corr()
         fig = ff.create_annotated_heatmap(z=corr.values, x=list(corr.columns), y=list(corr.index), colorscale='Blues')
         st.plotly_chart(fig, use_container_width=True)
 
@@ -51,17 +54,10 @@ feature_selection = st.sidebar.multiselect(
     default=['Pregnancies', 'Glucose', 'BMI', 'Age']  # Default features
 )
 
-# Option to select dependent variable
-dependent_variable = st.sidebar.selectbox(
-    "Select Dependent Variable",
-    options=df.columns[:-1],  # Exclude the Outcome column from selection
-    index=df.columns.get_loc('Glucose')  # Default to 'Glucose'
-)
-
 if st.sidebar.button("Train Full Regression Model"):
     # Features and target selection
     X = df[feature_selection]  # Use the selected features
-    y = df[dependent_variable]  # Use the selected dependent variable
+    y = df['Glucose']  # Plasma Glucose concentration is the dependent variable
     
     # Add constant for intercept
     X = sm.add_constant(X)
@@ -108,7 +104,7 @@ if st.sidebar.button("Train Full Regression Model"):
     st.write(regression_result_df.head())
 
     # Plotting actual vs predicted values
-    fig = px.scatter(regression_result_df, x="Actual", y="Predicted", title=f"Actual vs Predicted {dependent_variable}")
+    fig = px.scatter(regression_result_df, x="Actual", y="Predicted", title="Actual vs Predicted Plasma Glucose Concentration")
     st.plotly_chart(fig, use_container_width=True)
 
     # Optional: Plot residuals
