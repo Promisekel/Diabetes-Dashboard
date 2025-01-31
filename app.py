@@ -161,3 +161,7 @@ if uploaded_file is not None:
     st.sidebar.download_button("Download Filtered Data", df_filtered.to_csv(index=False), "filtered_data.csv", "text/csv")
 else:
     st.write("Please upload a CSV file to start.")
+    
+    # Footer
+st.sidebar.markdown("---")
+st.sidebar.write("Author: [Promise Bansah](https://github.com/Promisekel)")
